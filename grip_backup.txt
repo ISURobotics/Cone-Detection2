@@ -1,0 +1,69 @@
+import cv2
+import grip
+import numpy as np
+from time import sleep
+cap = cv2.VideoCapture(1)
+cap.set(3,1280)
+cap.set(4,720)
+pipeline = grip.GripPipeline()
+wlist = []
+centerList = []
+counter = 0
+numSamples = 20
+for i in range(0,20):
+	wlist.append(0)
+	centerList.append(0)
+while True:
+	for i in np.arange(0,numSamples):
+		ret, frame = cap.read()
+		pipeline.process(frame)
+		cnts = pipeline.convex_hulls_output
+		
+		try:
+			firstCnt = max(cnts, key = cv2.contourArea)
+			rect = cv2.minAreaRect(firstCnt)
+			try:
+				x = int(rect[0][0])
+				y = int(rect[0][1])
+				w = int(rect[1][0])
+				h = int(rect[1][1])
+				#bottom left: x, y+h, bottom right: x+w, y+has_key
+				frame[y+int(h/3):y+int(h/2), x-int(w/2):x+int(w/2)] = (0,0,0)
+				try:
+					pipeline.proccess(frame)
+				except:
+					print ("pipeline failed")
+				print("hello")
+				cnts = pipeline.convex_hulls_output
+				try:
+					firstCnt = max(cnts, key = cv2.contourArea)
+					rect = cv2.minAreaRect(firstCnt)
+					try:
+						x = int(rect[0][0])
+						y = int(rect[0][1])
+						w = int(rect[1][0])
+						h = int(rect[1][1])
+						if w> 150:
+							continue
+						center = x+w/2
+						wlist[i] = w
+						centerList[i] = center
+						avgW = sum(wlist)/float(len(wlist))
+						avgCenter = sum(centerList)/float(len(wlist))
+						print("center, width: " + str(avgCenter)+", "+str(avgW))
+					except:
+						print("oops")
+				except:
+						print("oops again")
+			
+			except:
+				print("slicing tuple wrong")
+			box = cv2.boxPoints(rect)
+			box = np.int0(box)
+			drawnRect = cv2.drawContours(frame,[box],0,(255,0,255),2)
+			cv2.imshow('rectangle',drawnRect)
+			key = cv2.waitKey(1) & 0xFF
+		except:
+			cv2.imshow('frame', frame)
+			key = cv2.waitKey(1) & 0xFF
+			#print("Fuck")
